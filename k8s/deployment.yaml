@@ -1,0 +1,312 @@
+# Kubernetes deployment configurations
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: architects-suite
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: architects-config
+  namespace: architects-suite
+data:
+  NODE_ENV: "production"
+  DEPLOYMENT_TYPE: "multi-tenant"
+  ALLOWED_ORIGINS: "https://architects-suite.com,https://app.architects-suite.com"
+---
+# Secret for sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: architects-secrets
+  namespace: architects-suite
+type: Opaque
+stringData:
+  DATABASE_URL: "postgresql://user:password@postgres:5432/architects_suite"
+  JWT_SECRET: "your-jwt-secret-here"
+  ENCRYPTION_KEY: "your-encryption-key-here"
+  NEXTAUTH_SECRET: "your-nextauth-secret-here"
+  GITHUB_BOT_TOKEN: "your-github-token-here"
+  GITHUB_WEBHOOK_SECRET: "your-webhook-secret-here"
+  SAML_CERT: |
+    -----BEGIN CERTIFICATE-----
+    your-saml-certificate-here
+    -----END CERTIFICATE-----
+  SAML_PRIVATE_CERT: |
+    -----BEGIN PRIVATE KEY-----
+    your-saml-private-key-here
+    -----END PRIVATE KEY-----
+---
+# PostgreSQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: architects-suite
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: "architects_suite"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 20Gi
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: architects-suite
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None
+---
+# Redis Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: architects-suite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-storage
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: redis-storage
+        persistentVolumeClaim:
+          claimName: redis-pvc
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: architects-suite
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+# Application Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: architects-suite-app
+  namespace: architects-suite
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: architects-suite
+  template:
+    metadata:
+      labels:
+        app: architects-suite
+    spec:
+      containers:
+      - name: app
+        image: architects-suite:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: architects-config
+              key: NODE_ENV
+        - name: DEPLOYMENT_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: architects-config
+              key: DEPLOYMENT_TYPE
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: architects-secrets
+              key: DATABASE_URL
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: architects-secrets
+              key: JWT_SECRET
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: architects-secrets
+              key: ENCRYPTION_KEY
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+      - name: logs
+        persistentVolumeClaim:
+          claimName: logs-pvc
+---
+# Application Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: architects-suite-service
+  namespace: architects-suite
+spec:
+  selector:
+    app: architects-suite
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: ClusterIP
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: architects-suite-ingress
+  namespace: architects-suite
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  tls:
+  - hosts:
+    - architects-suite.com
+    - app.architects-suite.com
+    secretName: architects-suite-tls
+  rules:
+  - host: architects-suite.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: architects-suite-service
+            port:
+              number: 80
+  - host: app.architects-suite.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: architects-suite-service
+            port:
+              number: 80
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: architects-suite-hpa
+  namespace: architects-suite
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: architects-suite-app
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
