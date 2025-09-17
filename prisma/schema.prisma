@@ -1,0 +1,296 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(FREE)
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  users     User[]
+  diagrams  Diagram[]
+  apiKeys   ApiKey[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String  @id @default(cuid())
+  email          String  @unique
+  name           String
+  avatar         String?
+  role           UserRole @default(USER)
+  organizationId String?
+  emailVerified  DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Authentication
+  accounts Account[]
+  sessions Session[]
+
+  // Relationships
+  organization        Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  diagramsCreated     Diagram[]     @relation("DiagramCreator")
+  diagramVersions     DiagramVersion[]
+  collaborationSessions CollaborationSession[]
+  comments            Comment[]
+  commentReplies      CommentReply[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Diagram {
+  id             String         @id @default(cuid())
+  title          String
+  description    String?
+  type           DiagramType
+  content        Json           @default("{}")
+  metadata       Json           @default("{}")
+  permissions    Json           @default("{}")
+  isPublic       Boolean        @default(false)
+  organizationId String
+  createdBy      String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relationships
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator        User                    @relation("DiagramCreator", fields: [createdBy], references: [id])
+  versions       DiagramVersion[]
+  collaborationSessions CollaborationSession[]
+  comments       Comment[]
+  exports        DiagramExport[]
+
+  @@map("diagrams")
+}
+
+model DiagramVersion {
+  id          String   @id @default(cuid())
+  diagramId   String
+  version     Int
+  content     Json
+  message     String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  diagram     Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  creator     User     @relation(fields: [createdBy], references: [id])
+
+  @@unique([diagramId, version])
+  @@map("diagram_versions")
+}
+
+model CollaborationSession {
+  id        String   @id @default(cuid())
+  diagramId String
+  userId    String
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+  metadata  Json     @default("{}")
+
+  // Relationships
+  diagram   Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events    CollaborationEvent[]
+
+  @@map("collaboration_sessions")
+}
+
+model CollaborationEvent {
+  id        String   @id @default(cuid())
+  sessionId String
+  type      String
+  data      Json
+  timestamp DateTime @default(now())
+
+  // Relationships
+  session   CollaborationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("collaboration_events")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  diagramId String
+  userId    String
+  content   String
+  position  Json?
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  diagram   Diagram        @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies   CommentReply[]
+
+  @@map("comments")
+}
+
+model CommentReply {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relationships
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comment_replies")
+}
+
+model DiagramExport {
+  id        String       @id @default(cuid())
+  diagramId String
+  format    ExportFormat
+  options   Json         @default("{}")
+  fileUrl   String
+  fileSize  Int
+  createdAt DateTime     @default(now())
+
+  // Relationships
+  diagram   Diagram      @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+
+  @@map("diagram_exports")
+}
+
+model Integration {
+  id             String          @id @default(cuid())
+  organizationId String
+  type           IntegrationType
+  config         Json
+  isActive       Boolean         @default(true)
+  lastSync       DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([organizationId, type])
+  @@map("integrations")
+}
+
+model ApiKey {
+  id             String   @id @default(cuid())
+  name           String
+  key            String   @unique
+  organizationId String
+  permissions    Json     @default("{}")
+  expiresAt      DateTime?
+  lastUsed       DateTime?
+  createdAt      DateTime @default(now())
+
+  // Relationships
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  metadata  Json     @default("{}")
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// Enums
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  VIEWER
+}
+
+enum DiagramType {
+  FLOWCHART
+  SEQUENCE
+  ERD
+  UML
+  CLOUD_ARCHITECTURE
+  COMPONENT
+  NETWORK
+  MINDMAP
+}
+
+enum ExportFormat {
+  PNG
+  SVG
+  PDF
+  MARKDOWN
+  JSON
+}
+
+enum IntegrationType {
+  GITHUB
+  NOTION
+  CONFLUENCE
+  SLACK
+  FIGMA
+  MIRO
+}
