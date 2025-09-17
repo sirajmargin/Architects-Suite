@@ -1,0 +1,354 @@
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { DiagramType, ExportFormat, ExportOptions } from '@/types';
+
+export interface ExportResult {
+  success: boolean;
+  data?: Blob | string;
+  filename?: string;
+  error?: string;
+}
+
+export class DiagramExportService {
+  /**
+   * Export diagram in specified format
+   */
+  async exportDiagram(
+    element: HTMLElement,
+    diagramCode: string,
+    format: ExportFormat,
+    options: ExportOptions = {}
+  ): Promise<ExportResult> {
+    try {
+      switch (format) {
+        case 'png':
+          return await this.exportToPNG(element, options);
+        case 'svg':
+          return await this.exportToSVG(element, options);
+        case 'pdf':
+          return await this.exportToPDF(element, options);
+        case 'markdown':
+          return this.exportToMarkdown(diagramCode, options);
+        case 'json':
+          return this.exportToJSON(diagramCode, options);
+        default:
+          throw new Error(`Unsupported export format: ${format}`);
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Export failed'
+      };
+    }
+  }
+
+  /**
+   * Export diagram as PNG image
+   */
+  private async exportToPNG(
+    element: HTMLElement,
+    options: ExportOptions
+  ): Promise<ExportResult> {
+    const canvas = await html2canvas(element, {
+      backgroundColor: options.backgroundColor || '#ffffff',
+      scale: options.scale || 2,
+      useCORS: true,
+      allowTaint: false,
+      width: options.width,
+      height: options.height
+    });
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve({
+            success: true,
+            data: blob,
+            filename: `${options.filename || 'diagram'}.png`
+          });
+        } else {
+          resolve({
+            success: false,
+            error: 'Failed to create PNG blob'
+          });
+        }
+      }, 'image/png', options.quality || 0.9);
+    });
+  }
+
+  /**
+   * Export diagram as SVG
+   */
+  private async exportToSVG(
+    element: HTMLElement,
+    options: ExportOptions
+  ): Promise<ExportResult> {
+    // Clone the element to avoid modifying the original
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+    
+    // Find SVG elements in the cloned element
+    const svgElements = clonedElement.querySelectorAll('svg');
+    
+    if (svgElements.length === 0) {
+      // If no SVG found, create one from the HTML element
+      return this.createSVGFromHTML(clonedElement, options);
+    }
+
+    // If multiple SVGs, combine them
+    const combinedSVG = this.combineSVGs(Array.from(svgElements), options);
+    
+    const svgBlob = new Blob([combinedSVG], { type: 'image/svg+xml' });
+    
+    return {
+      success: true,
+      data: svgBlob,
+      filename: `${options.filename || 'diagram'}.svg`
+    };
+  }
+
+  /**
+   * Export diagram as PDF
+   */
+  private async exportToPDF(
+    element: HTMLElement,
+    options: ExportOptions
+  ): Promise<ExportResult> {
+    const canvas = await html2canvas(element, {
+      backgroundColor: options.backgroundColor || '#ffffff',
+      scale: options.scale || 2,
+      useCORS: true,
+      allowTaint: false
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: options.orientation || 'landscape',
+      unit: 'mm',
+      format: options.pageSize || 'a4'
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+    
+    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+    const finalWidth = imgWidth * ratio;
+    const finalHeight = imgHeight * ratio;
+    
+    const x = (pdfWidth - finalWidth) / 2;
+    const y = (pdfHeight - finalHeight) / 2;
+
+    pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+    
+    if (options.title) {
+      pdf.setFontSize(16);
+      pdf.text(options.title, pdfWidth / 2, 20, { align: 'center' });
+    }
+
+    const pdfBlob = pdf.output('blob');
+    
+    return {
+      success: true,
+      data: pdfBlob,
+      filename: `${options.filename || 'diagram'}.pdf`
+    };
+  }
+
+  /**
+   * Export diagram as Markdown
+   */
+  private exportToMarkdown(
+    diagramCode: string,
+    options: ExportOptions
+  ): ExportResult {
+    const title = options.title || 'Diagram';
+    const description = options.description || '';
+    const timestamp = new Date().toISOString();
+    
+    const markdown = `# ${title}
+
+${description ? `${description}\n\n` : ''}## Diagram
+
+\`\`\`mermaid
+${diagramCode}
+\`\`\`
+
+## Metadata
+
+- **Generated**: ${timestamp}
+- **Type**: ${options.diagramType || 'Unknown'}
+- **Version**: ${options.version || '1.0.0'}
+
+${options.notes ? `## Notes
+
+${options.notes}
+
+` : ''}---
+
+*Generated by Architects Suite*
+`;
+
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    
+    return {
+      success: true,
+      data: blob,
+      filename: `${options.filename || 'diagram'}.md`
+    };
+  }
+
+  /**
+   * Export diagram as JSON
+   */
+  private exportToJSON(
+    diagramCode: string,
+    options: ExportOptions
+  ): ExportResult {
+    const exportData = {
+      version: '1.0.0',
+      type: options.diagramType || 'unknown',
+      title: options.title || 'Untitled Diagram',
+      description: options.description || '',
+      code: diagramCode,
+      metadata: {
+        createdAt: new Date().toISOString(),
+        exportedAt: new Date().toISOString(),
+        options: options
+      },
+      settings: {
+        theme: options.theme || 'default',
+        layout: options.layout || 'default'
+      }
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    return {
+      success: true,
+      data: blob,
+      filename: `${options.filename || 'diagram'}.json`
+    };
+  }
+
+  /**
+   * Create SVG from HTML element
+   */
+  private createSVGFromHTML(
+    element: HTMLElement,
+    options: ExportOptions
+  ): ExportResult {
+    const rect = element.getBoundingClientRect();
+    const width = options.width || rect.width;
+    const height = options.height || rect.height;
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+        <foreignObject width="100%" height="100%">
+          <div xmlns="http://www.w3.org/1999/xhtml">
+            ${element.outerHTML}
+          </div>
+        </foreignObject>
+      </svg>
+    `;
+
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    
+    return {
+      success: true,
+      data: blob,
+      filename: `${options.filename || 'diagram'}.svg`
+    };
+  }
+
+  /**
+   * Combine multiple SVGs into one
+   */
+  private combineSVGs(svgElements: SVGElement[], options: ExportOptions): string {
+    if (svgElements.length === 1) {
+      return svgElements[0].outerHTML;
+    }
+
+    const totalWidth = svgElements.reduce((sum, svg) => {
+      const width = svg.getAttribute('width');
+      return sum + (width ? parseInt(width) : 300);
+    }, 0);
+
+    const maxHeight = Math.max(...svgElements.map(svg => {
+      const height = svg.getAttribute('height');
+      return height ? parseInt(height) : 200;
+    }));
+
+    let combinedSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${maxHeight}">`;
+    
+    let xOffset = 0;
+    svgElements.forEach(svg => {
+      const width = svg.getAttribute('width') || '300';
+      const height = svg.getAttribute('height') || '200';
+      
+      combinedSVG += `<g transform="translate(${xOffset}, 0)">`;
+      combinedSVG += svg.innerHTML;
+      combinedSVG += `</g>`;
+      
+      xOffset += parseInt(width);
+    });
+
+    combinedSVG += '</svg>';
+    return combinedSVG;
+  }
+
+  /**
+   * Download exported file
+   */
+  downloadFile(data: Blob, filename: string): void {
+    const url = URL.createObjectURL(data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Get supported export formats for diagram type
+   */
+  getSupportedFormats(diagramType: DiagramType): ExportFormat[] {
+    const baseFormats: ExportFormat[] = ['png', 'svg', 'pdf', 'markdown', 'json'];
+    
+    // All diagram types support all formats currently
+    return baseFormats;
+  }
+
+  /**
+   * Validate export options
+   */
+  validateExportOptions(options: ExportOptions): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (options.scale && (options.scale < 0.1 || options.scale > 5)) {
+      errors.push('Scale must be between 0.1 and 5');
+    }
+    
+    if (options.quality && (options.quality < 0 || options.quality > 1)) {
+      errors.push('Quality must be between 0 and 1');
+    }
+    
+    if (options.width && options.width < 1) {
+      errors.push('Width must be positive');
+    }
+    
+    if (options.height && options.height < 1) {
+      errors.push('Height must be positive');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+}
+
+export const exportService = new DiagramExportService();
