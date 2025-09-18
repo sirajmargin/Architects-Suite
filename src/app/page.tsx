@@ -25,11 +25,11 @@ export default function HomePage() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <Link href="/auth/signin">
-                <Button variant="outline">Sign In</Button>
+              <Link href="/dashboard">
+                <Button variant="outline">Dashboard</Button>
               </Link>
-              <Link href="/auth/signup">
-                <Button>Get Started</Button>
+              <Link href="/diagrams/create">
+                <Button>Create Diagram</Button>
               </Link>
             </div>
           </div>
@@ -50,7 +50,7 @@ export default function HomePage() {
           </p>
           
           <div className="flex items-center justify-center space-x-4">
-            <Link href="/auth/signup">
+            <Link href="/diagrams/create?ai=true">
               <Button size="lg" className="px-8 py-3">
                 <Brain className="mr-2 h-5 w-5" />
                 Start Creating with AI
@@ -194,9 +194,9 @@ export default function HomePage() {
           </p>
           
           <div className="flex items-center justify-center space-x-4">
-            <Link href="/auth/signup">
+            <Link href="/diagrams/create">
               <Button size="lg" variant="outline" className="px-8 py-3 bg-white text-blue-600 hover:bg-gray-50">
-                Start Free Trial
+                Start Creating
               </Button>
             </Link>
             <Link href="/pricing">

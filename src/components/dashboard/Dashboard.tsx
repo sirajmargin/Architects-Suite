@@ -109,9 +109,32 @@ export function Dashboard() {
     window.location.href = `/diagrams/create?type=${type}&ai=true`;
   };
 
-  const handleAIGenerate = () => {
-    // Navigate to AI-powered diagram generation
-    window.location.href = '/diagrams/ai-generate';
+  const handleAIGenerate = async () => {
+    try {
+      const response = await fetch('/api/diagrams/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: 'Generate a sample diagram',
+          diagramType: 'flowchart',
+          complexity: 'medium'
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Navigate to diagram creation with AI-generated content
+        const params = new URLSearchParams({
+          type: 'flowchart',
+          ai: 'true',
+          generated: 'true'
+        });
+        window.location.href = `/diagrams/create?${params.toString()}`;
+      }
+    } catch (error) {
+      console.error('AI generation failed:', error);
+    }
   };
 
   const filteredDiagrams = diagrams.filter(diagram => {
