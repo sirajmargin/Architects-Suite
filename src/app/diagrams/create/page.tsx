@@ -1,35 +1,34 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DiagramAsCodeEditor } from '@/components/editor/DiagramAsCodeEditor';
-import { DiagramRenderer } from '@/components/diagrams/DiagramRenderer';
-import { CloudDiagramWithAI } from '@/components/diagrams/CloudDiagramWithAI';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageLoader } from '@/components/ui/loading';
 import { DiagramType, DiagramContent } from '@/types';
 import { 
   Code, 
   Eye, 
   Split, 
-  Save, 
-  Share2, 
-  Download,
-  Brain,
-  Lightbulb
+  Save,
+  Brain
 } from 'lucide-react';
+
+// Lazy load heavy components
+const DiagramAsCodeEditor = lazy(() => import('@/components/editor/DiagramAsCodeEditor').then(m => ({ default: m.DiagramAsCodeEditor })));
+const DiagramRenderer = lazy(() => import('@/components/diagrams/DiagramRenderer').then(m => ({ default: m.DiagramRenderer })));
+const CloudDiagramWithAI = lazy(() => import('@/components/diagrams/CloudDiagramWithAI').then(m => ({ default: m.CloudDiagramWithAI })));
 
 function DiagramCreateContent() {
   const searchParams = useSearchParams();
   const diagramType = (searchParams.get('type') as DiagramType) || 'flowchart';
   const aiEnabled = searchParams.get('ai') === 'true';
 
-  const [content, setContent] = useState<DiagramContent>({
-    code: getDefaultCode(diagramType),
+  const [content, setContent] = useState<DiagramContent>(() => ({
+    code: diagramType === 'cloud-architecture' ? '' : getDefaultCode(diagramType),
     nodes: [],
     edges: [],
     layout: { direction: 'TB', spacing: 100, alignment: 'center' }
-  });
+  }));
   
   const [viewMode, setViewMode] = useState<'code' | 'preview' | 'split'>('split');
   const [isSaving, setIsSaving] = useState(false);
@@ -131,40 +130,42 @@ function DiagramCreateContent() {
       </header>
 
       <div className="flex h-[calc(100vh-4rem)]">
-        {diagramType === 'cloud-architecture' ? (
-          <div className="flex-1 p-4">
-            <CloudDiagramWithAI onContentChange={handleContentChange} />
-          </div>
-        ) : (
-          <div className="flex-1 flex">
-            {(viewMode === 'code' || viewMode === 'split') && (
-              <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} border-r border-gray-200`}>
-                <DiagramAsCodeEditor
-                  diagramType={diagramType}
-                  initialContent={content.code || ''}
-                  onSave={handleSave}
-                  onPreview={handlePreview}
-                />
-              </div>
-            )}
-
-            {(viewMode === 'preview' || viewMode === 'split') && (
-              <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} bg-white`}>
-                <div className="h-full p-4">
-                  <DiagramRenderer
-                    type={diagramType}
-                    content={content}
-                    width={viewMode === 'split' ? 600 : 800}
-                    height={600}
-                    readonly={false}
-                    onContentChange={handleContentChange}
-                    onError={(error) => console.error('Diagram error:', error)}
+        <Suspense fallback={<PageLoader />}>
+          {diagramType === 'cloud-architecture' ? (
+            <div className="flex-1 p-4">
+              <CloudDiagramWithAI onContentChange={handleContentChange} />
+            </div>
+          ) : (
+            <div className="flex-1 flex">
+              {(viewMode === 'code' || viewMode === 'split') && (
+                <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} border-r border-gray-200`}>
+                  <DiagramAsCodeEditor
+                    diagramType={diagramType}
+                    initialContent={content.code || ''}
+                    onSave={handleSave}
+                    onPreview={handlePreview}
                   />
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+
+              {(viewMode === 'preview' || viewMode === 'split') && (
+                <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} bg-white`}>
+                  <div className="h-full p-4">
+                    <DiagramRenderer
+                      type={diagramType}
+                      content={content}
+                      width={viewMode === 'split' ? 600 : 800}
+                      height={600}
+                      readonly={false}
+                      onContentChange={handleContentChange}
+                      onError={(error) => console.error('Diagram error:', error)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Suspense>
       </div>
     </div>
   );
@@ -172,66 +173,38 @@ function DiagramCreateContent() {
 
 export default function DiagramCreatePage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<PageLoader />}>
       <DiagramCreateContent />
     </Suspense>
   );
 }
 
-function getDefaultCode(type: DiagramType): string {
-  switch (type) {
-    case 'flowchart':
-      return `flowchart TD
+const defaultCodes = {
+  flowchart: `flowchart TD
     A[Start] --> B{Decision}
     B -->|Yes| C[Process 1]
     B -->|No| D[Process 2]
     C --> E[End]
-    D --> E`;
-    
-    case 'sequence':
-      return `sequenceDiagram
+    D --> E`,
+  sequence: `sequenceDiagram
     participant A as Alice
     participant B as Bob
     A->>B: Hello Bob, how are you?
-    B-->>A: Great, thanks for asking!`;
-    
-    case 'erd':
-      return `erDiagram
+    B-->>A: Great, thanks for asking!`,
+  erd: `erDiagram
     CUSTOMER ||--o{ ORDER : places
-    ORDER ||--|{ LINE-ITEM : contains
-    CUSTOMER {
-        string name
-        string email
-        string phone
-    }
-    ORDER {
-        int order_id
-        date order_date
-        decimal total
-    }`;
-    
-    case 'uml':
-      return `classDiagram
+    ORDER ||--|{ LINE-ITEM : contains`,
+  uml: `classDiagram
     class User {
         +String name
-        +String email
         +login()
-        +logout()
-    }
-    class Admin {
-        +manageUsers()
-    }
-    User <|-- Admin`;
-    
-    case 'cloud-architecture':
-      return `graph TD
+    }`,
+  'cloud-architecture': `graph TD
     A[User] --> B[Load Balancer]
     B --> C[Web Server]
-    C --> D[API Gateway]
-    D --> E[Lambda]
-    E --> F[Database]`;
-    
-    default:
-      return '// Start creating your diagram here...';
-  }
+    C --> D[Database]`
+};
+
+function getDefaultCode(type: DiagramType): string {
+  return defaultCodes[type] || '// Start creating your diagram here...';
 }

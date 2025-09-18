@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { DiagramContent } from '@/types';
-import { CloudArchitectureRenderer } from './renderers/CloudArchitectureRenderer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Brain, Code, Eye, Loader2, Sparkles } from 'lucide-react';
+
+const CloudArchitectureRenderer = lazy(() => import('./renderers/CloudArchitectureRenderer').then(m => ({ default: m.CloudArchitectureRenderer })));
 
 interface CloudDiagramWithAIProps {
   onContentChange?: (content: DiagramContent) => void;
@@ -427,13 +428,15 @@ resource "aws_instance" "web" {
                 <CardTitle className="text-sm font-medium">Generated Architecture</CardTitle>
               </CardHeader>
               <CardContent className="h-[calc(100%-4rem)]">
-                <CloudArchitectureRenderer
-                  content={diagramContent}
-                  width={viewMode === 'split' ? 500 : 800}
-                  height={400}
-                  readonly={false}
-                  onContentChange={setDiagramContent}
-                />
+                <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"><span className="sr-only">Loading diagram...</span></div></div>}>
+                  <CloudArchitectureRenderer
+                    content={diagramContent}
+                    width={viewMode === 'split' ? 500 : 800}
+                    height={400}
+                    readonly={false}
+                    onContentChange={setDiagramContent}
+                  />
+                </Suspense>
               </CardContent>
             </Card>
           </div>

@@ -1,1 +1,5 @@
-{}
+{
+  "/dashboard/page": "app/dashboard/page.js",
+  "/diagrams/create/page": "app/diagrams/create/page.js",
+  "/api/ai/analyze-diagram-code/route": "app/api/ai/analyze-diagram-code/route.js"
+}

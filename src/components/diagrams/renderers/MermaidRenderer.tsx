@@ -25,6 +25,12 @@ export function MermaidRenderer({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Only load mermaid when actually needed
+    if (!content.code || content.code.trim().startsWith('//') || content.code.trim().startsWith('/*')) {
+      setIsLoading(false);
+      return;
+    }
+
     // Dynamically import mermaid to avoid SSR issues
     import('mermaid').then((mermaidModule) => {
       const mermaidInstance = mermaidModule.default;
@@ -35,39 +41,9 @@ export function MermaidRenderer({
         securityLevel: 'loose',
         fontFamily: 'Inter, system-ui, sans-serif',
         fontSize: 14,
-        flowchart: {
-          useMaxWidth: true,
-          htmlLabels: true,
-          curve: 'basis',
-          padding: 20
-        },
-        sequence: {
-          diagramMarginX: 50,
-          diagramMarginY: 10,
-          actorMargin: 50,
-          width: 150,
-          height: 65,
-          boxMargin: 10,
-          boxTextMargin: 5,
-          noteMargin: 10,
-          messageMargin: 35,
-          mirrorActors: true,
-          bottomMarginAdj: 1,
-          useMaxWidth: true,
-          rightAngles: false,
-          showSequenceNumbers: false
-        },
-        er: {
-          diagramPadding: 20,
-          layoutDirection: 'TB',
-          minEntityWidth: 100,
-          minEntityHeight: 75,
-          entityPadding: 15,
-          stroke: 'gray',
-          fill: 'honeydew',
-          fontSize: 12,
-          useMaxWidth: true
-        }
+        flowchart: { useMaxWidth: true, htmlLabels: true },
+        sequence: { useMaxWidth: true, mirrorActors: true },
+        er: { useMaxWidth: true }
       });
       
       setMermaid(mermaidInstance);
@@ -77,7 +53,7 @@ export function MermaidRenderer({
       onError?.('Failed to load diagram renderer');
       setIsLoading(false);
     });
-  }, [onError]);
+  }, [content.code, onError]);
 
   useEffect(() => {
     if (mermaid && content.code && containerRef.current) {
@@ -139,59 +115,23 @@ export function MermaidRenderer({
   };
 
   const addInteractiveHandlers = (svgElement: SVGElement) => {
-    // Add click handlers for nodes
+    if (readonly) return;
+    
+    // Simplified interaction handlers
     const nodes = svgElement.querySelectorAll('.node, .actor, .entity');
     nodes.forEach((node) => {
-      node.addEventListener('click', (event) => {
-        event.stopPropagation();
+      (node as HTMLElement).style.cursor = 'pointer';
+      node.addEventListener('click', (e) => {
+        e.stopPropagation();
         handleNodeClick(node);
-      });
-      
-      // Add hover effects
-      node.addEventListener('mouseenter', () => {
-        (node as HTMLElement).style.filter = 'brightness(1.1)';
-        (node as HTMLElement).style.cursor = 'pointer';
-      });
-      
-      node.addEventListener('mouseleave', () => {
-        (node as HTMLElement).style.filter = 'none';
-      });
-    });
-
-    // Add click handlers for edges/connections
-    const edges = svgElement.querySelectorAll('.edgePath, .messageLine0, .relation');
-    edges.forEach((edge) => {
-      edge.addEventListener('click', (event) => {
-        event.stopPropagation();
-        handleEdgeClick(edge);
       });
     });
   };
 
   const handleNodeClick = (node: Element) => {
-    // Extract node information
-    const nodeId = node.getAttribute('id') || '';
     const nodeText = node.textContent || '';
-    
-    console.log('Node clicked:', { nodeId, nodeText });
-    
-    // In a real implementation, this would open an edit dialog
-    // or trigger the onContentChange callback with updated content
-    if (onContentChange) {
-      // This is a simplified example - real implementation would parse and update the diagram
-      const updatedContent = { ...content };
-      onContentChange(updatedContent);
-    }
-  };
-
-  const handleEdgeClick = (edge: Element) => {
-    console.log('Edge clicked:', edge);
-    
-    // Similar to node click, would handle edge editing
-    if (onContentChange) {
-      const updatedContent = { ...content };
-      onContentChange(updatedContent);
-    }
+    console.log('Node clicked:', nodeText);
+    onContentChange?.({ ...content });
   };
 
   if (isLoading) {
