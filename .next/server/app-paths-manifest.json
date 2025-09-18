@@ -1,4 +1,10 @@
 {
   "/not-found": "app/not-found.js",
-  "/page": "app/page.js"
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/page": "app/page.js",
+  "/diagrams/create/page": "app/diagrams/create/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/api/diagrams/route": "app/api/diagrams/route.js",
+  "/api/ai/dashboard-suggestions/route": "app/api/ai/dashboard-suggestions/route.js",
+  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js"
 }

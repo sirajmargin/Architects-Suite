@@ -51,7 +51,8 @@ export function Dashboard() {
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
   const [aiPrompt, setAiPrompt] = useState('');
   const [showAiPrompt, setShowAiPrompt] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [aiGenerating, setAiGenerating] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalDiagrams: 0,
     sharedDiagrams: 0,
@@ -62,7 +63,6 @@ export function Dashboard() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterType, setFilterType] = useState<string>('all');
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
@@ -124,14 +124,14 @@ export function Dashboard() {
       return;
     }
 
-    setIsLoading(true);
+    setAiGenerating(true);
     try {
-      const response = await fetch('/api/diagrams/ai-generate', {
+      const aiServiceUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:3001';
+      const response = await fetch(`${aiServiceUrl}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: aiPrompt,
-          diagramType: 'cloud-architecture'
+          prompt: aiPrompt
         })
       });
       
@@ -139,6 +139,7 @@ export function Dashboard() {
       
       if (result.success) {
         sessionStorage.setItem('aiGeneratedContent', JSON.stringify(result.content));
+        sessionStorage.setItem('aiPrompt', aiPrompt);
         const params = new URLSearchParams({
           type: 'cloud-architecture',
           ai: 'true',
@@ -146,13 +147,14 @@ export function Dashboard() {
         });
         window.location.href = `/diagrams/create?${params.toString()}`;
       } else {
-        alert('Failed to generate diagram: ' + (result.error || 'Unknown error'));
+        console.error('AI Generation Error:', result);
+        alert('Failed to generate diagram: ' + (result.error || 'Service unavailable'));
       }
     } catch (error) {
       console.error('AI generation failed:', error);
       alert('Failed to generate diagram. Please try again.');
     } finally {
-      setIsLoading(false);
+      setAiGenerating(false);
     }
   };
 
@@ -164,30 +166,36 @@ export function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">Architects Suite</h1>
+      <header className="professional-header mx-4 mt-4 rounded-2xl sticky top-4 z-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between h-18">
+            <div className="flex items-center space-x-4">
+              <div className="icon-gradient w-12 h-12">
+                <Brain className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold gradient-text">Architects Suite</h1>
+                <p className="text-sm text-gray-600 font-medium">AI-Powered Architecture Design</p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
-                <Bell className="h-4 w-4 mr-2" />
-                Notifications
-              </Button>
+            <div className="flex items-center space-x-3">
+              <button className="glass-card px-4 py-2 rounded-lg flex items-center space-x-2 hover:shadow-lg transition-all">
+                <Bell className="h-4 w-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Notifications</span>
+              </button>
               
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
+              <button className="glass-card px-4 py-2 rounded-lg flex items-center space-x-2 hover:shadow-lg transition-all">
+                <Settings className="h-4 w-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Settings</span>
+              </button>
               
-              <Button variant="outline" size="sm">
-                <User className="h-4 w-4 mr-2" />
-                Profile
-              </Button>
+              <button className="btn-primary px-4 py-2 rounded-lg flex items-center space-x-2">
+                <User className="h-4 w-4" />
+                <span className="text-sm font-medium">Profile</span>
+              </button>
             </div>
           </div>
         </div>
@@ -196,96 +204,99 @@ export function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* AI Suggestions */}
         {aiSuggestions.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              <Brain className="h-5 w-5 inline mr-2" />
-              AI Recommendations
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mb-8 animate-fade-in">
+            <div className="flex items-center mb-6">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
+                <Brain className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                AI Recommendations
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {aiSuggestions.slice(0, 3).map((suggestion, index) => (
-                <Alert key={index} className="border-blue-200 bg-blue-50">
-                  <Zap className="h-4 w-4" />
-                  <AlertDescription>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-blue-900">{suggestion.title}</p>
-                        <p className="text-sm text-blue-700">{suggestion.description}</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setAiPrompt(suggestion.title);
-                        setShowAiPrompt(true);
-                      }}>
-                        Try Now
-                      </Button>
+                <div key={index} className="glass-card p-6 rounded-2xl card-hover group border border-purple-200/50">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:shadow-glow transition-all duration-300">
+                      <Zap className="h-6 w-6 text-white" />
                     </div>
-                  </AlertDescription>
-                </Alert>
+                    <Button variant="outline" size="sm" className="btn-primary text-xs" onClick={() => {
+                      setAiPrompt(suggestion.title);
+                      setShowAiPrompt(true);
+                    }}>
+                      Try Now
+                    </Button>
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-2">{suggestion.title}</h3>
+                  <p className="text-sm text-gray-600">{suggestion.description}</p>
+                </div>
               ))}
             </div>
           </div>
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Diagrams</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalDiagrams}</div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 animate-slide-up">
+          <div className="stat-card p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="icon-gradient w-14 h-14">
+                <FileText className="h-7 w-7 text-white" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-2">{stats.totalDiagrams}</div>
+            <p className="text-sm font-semibold text-gray-600">Total Diagrams</p>
+          </div>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Shared Diagrams</CardTitle>
-              <Share2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.sharedDiagrams}</div>
-            </CardContent>
-          </Card>
+          <div className="stat-card p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="icon-gradient w-14 h-14">
+                <Share2 className="h-7 w-7 text-white" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-2">{stats.sharedDiagrams}</div>
+            <p className="text-sm font-semibold text-gray-600">Shared Diagrams</p>
+          </div>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Collaborators</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.collaborators}</div>
-            </CardContent>
-          </Card>
+          <div className="stat-card p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="icon-gradient w-14 h-14">
+                <Users className="h-7 w-7 text-white" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-2">{stats.collaborators}</div>
+            <p className="text-sm font-semibold text-gray-600">Collaborators</p>
+          </div>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">AI Generated</CardTitle>
-              <Brain className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.aiGeneratedDiagrams}</div>
-            </CardContent>
-          </Card>
+          <div className="stat-card p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="icon-gradient w-14 h-14">
+                <Brain className="h-7 w-7 text-white" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-2">{stats.aiGeneratedDiagrams}</div>
+            <p className="text-sm font-semibold text-gray-600">AI Generated</p>
+          </div>
         </div>
 
         {/* AI Prompt Section */}
         {showAiPrompt && (
-          <Card className="mb-8 border-blue-200 bg-blue-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-blue-600" />
-                AI Diagram Generator
-              </CardTitle>
-              <CardDescription>
-                Describe the diagram you want to create and AI will generate it for you
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Describe your diagram:</label>
+          <div className="ai-prompt-card mb-8 p-8 rounded-3xl animate-slide-up">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="icon-gradient w-16 h-16 shadow-glow">
+                <Brain className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h3 className="text-3xl font-bold gradient-text">AI Diagram Generator</h3>
+                <p className="text-lg text-gray-700 font-medium">Describe your architecture and watch AI create it instantly</p>
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-gray-700">Describe your architecture:</label>
                 <Textarea
-                  className="min-h-[80px] resize-none"
-                  placeholder="e.g., 'Create a microservices architecture with user service, order service, and databases' or 'Design a serverless application with API Gateway and Lambda'"
+                  className="min-h-[120px] resize-none border-2 border-gray-200 focus:border-blue-400 rounded-xl p-4 text-base"
+                  placeholder="✨ Try: 'Create a microservices e-commerce platform with user authentication, product catalog, shopping cart, payment processing, and order management using AWS services'"
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   onKeyDown={(e) => {
@@ -297,89 +308,113 @@ export function Dashboard() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <Button onClick={handleAIGenerate} disabled={!aiPrompt.trim() || isLoading}>
-                    {isLoading ? (
+                <div className="flex gap-3">
+                  <button 
+                    onClick={handleAIGenerate} 
+                    disabled={!aiPrompt.trim() || aiGenerating}
+                    className="btn-primary px-6 py-3 text-base shadow-glow rounded-xl font-semibold flex items-center"
+                  >
+                    {aiGenerating ? (
                       <>
-                        <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Generating...
+                        <div className="w-5 h-5 mr-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Generating Magic...
                       </>
                     ) : (
                       <>
-                        <Brain className="h-4 w-4 mr-2" />
-                        Generate Diagram
+                        <Brain className="h-5 w-5 mr-3" />
+                        Generate Architecture
                       </>
                     )}
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowAiPrompt(false)}>
+                  </button>
+                  <Button variant="outline" onClick={() => setShowAiPrompt(false)} className="px-6 py-3">
                     Cancel
                   </Button>
                 </div>
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  Ctrl+Enter to generate
-                </span>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">Ctrl</kbd>
+                  <span>+</span>
+                  <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">Enter</kbd>
+                  <span>to generate</span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Create Section */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Create New Diagram</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <Button 
-              variant="outline" 
-              className="h-24 flex flex-col items-center justify-center"
+          <div className="flex items-center mb-6">
+            <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center mr-3">
+              <Plus className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Create New Diagram</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div 
+              className="create-card p-6 rounded-2xl cursor-pointer"
               onClick={() => handleCreateDiagram('flowchart')}
             >
-              <GitBranch className="h-6 w-6 mb-2" />
-              Flowchart
-            </Button>
+              <div className="icon-gradient w-14 h-14 mb-4">
+                <GitBranch className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-base mb-1">Flowchart</h3>
+              <p className="text-sm text-gray-600">Process flows</p>
+            </div>
             
-            <Button 
-              variant="outline" 
-              className="h-24 flex flex-col items-center justify-center"
+            <div 
+              className="create-card p-6 rounded-2xl cursor-pointer"
               onClick={() => handleCreateDiagram('sequence')}
             >
-              <Clock className="h-6 w-6 mb-2" />
-              Sequence
-            </Button>
+              <div className="icon-gradient w-14 h-14 mb-4">
+                <Clock className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-base mb-1">Sequence</h3>
+              <p className="text-sm text-gray-600">Time-based</p>
+            </div>
             
-            <Button 
-              variant="outline" 
-              className="h-24 flex flex-col items-center justify-center"
+            <div 
+              className="create-card p-6 rounded-2xl cursor-pointer"
               onClick={() => handleCreateDiagram('erd')}
             >
-              <Database className="h-6 w-6 mb-2" />
-              ERD
-            </Button>
+              <div className="icon-gradient w-14 h-14 mb-4">
+                <Database className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-base mb-1">ERD</h3>
+              <p className="text-sm text-gray-600">Data models</p>
+            </div>
             
-            <Button 
-              variant="outline" 
-              className="h-24 flex flex-col items-center justify-center"
+            <div 
+              className="create-card p-6 rounded-2xl cursor-pointer"
               onClick={() => handleCreateDiagram('cloud')}
             >
-              <Settings className="h-6 w-6 mb-2" />
-              Cloud
-            </Button>
+              <div className="icon-gradient w-14 h-14 mb-4">
+                <Settings className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-base mb-1">Cloud</h3>
+              <p className="text-sm text-gray-600">Infrastructure</p>
+            </div>
             
-            <Button 
-              variant="outline" 
-              className="h-24 flex flex-col items-center justify-center border-blue-200 hover:bg-blue-50"
+            <div 
+              className="create-card p-6 rounded-2xl cursor-pointer border-gradient"
               onClick={() => setShowAiPrompt(true)}
             >
-              <Brain className="h-6 w-6 mb-2 text-blue-600" />
-              AI Generate
-            </Button>
+              <div className="icon-gradient w-14 h-14 mb-4 shadow-glow">
+                <Brain className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-gradient text-base mb-1">AI Generate</h3>
+              <p className="text-sm text-gray-600">Smart creation</p>
+            </div>
             
-            <Button 
-              variant="outline" 
-              className="h-24 flex flex-col items-center justify-center"
+            <div 
+              className="create-card p-6 rounded-2xl cursor-pointer"
               onClick={() => handleCreateDiagram('custom')}
             >
-              <Plus className="h-6 w-6 mb-2" />
-              Custom
-            </Button>
+              <div className="icon-gradient w-14 h-14 mb-4">
+                <Plus className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-base mb-1">Custom</h3>
+              <p className="text-sm text-gray-600">Your design</p>
+            </div>
           </div>
         </div>
 
