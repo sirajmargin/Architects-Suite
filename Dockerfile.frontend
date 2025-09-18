@@ -1,21 +1,8 @@
-FROM node:18-alpine AS base
+FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-
-FROM base AS deps
-RUN npm ci --only=production && npm cache clean --force
-
-FROM base AS build
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
-
-FROM node:18-alpine AS runtime
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/public ./public
-COPY --from=build /app/package.json ./package.json
-
 EXPOSE 3000
 CMD ["npm", "start"]

@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - WATCHPACK_POLLING=true
+      - NEXT_PUBLIC_AI_SERVICE_URL=http://ai-service:3001
+      - NEXT_PUBLIC_DIAGRAM_SERVICE_URL=http://diagram-service:3002
+      - NEXT_PUBLIC_PPT_SERVICE_URL=http://ppt-service:3003
+    networks:
+      - app-network
+
+  ai-service:
+    build: ./services/ai-service
+    ports:
+      - "3001:3001"
+    networks:
+      - app-network
+
+  diagram-service:
+    build: ./services/diagram-service
+    ports:
+      - "3002:3002"
+    networks:
+      - app-network
+
+  ppt-service:
+    build: ./services/ppt-service
+    ports:
+      - "3003:3003"
+    networks:
+      - app-network
+
+volumes:
+  node_modules:
+
+networks:
+  app-network:
+    driver: bridge

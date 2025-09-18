@@ -43,21 +43,3 @@ services:
       timeout: 10s
       retries: 3
 
-  # Frontend Service
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_AI_SERVICE_URL=http://localhost:3001
-      - NEXT_PUBLIC_DIAGRAM_SERVICE_URL=http://localhost:3002
-      - NEXT_PUBLIC_PPT_SERVICE_URL=http://localhost:3003
-    depends_on:
-      ai-service:
-        condition: service_healthy
-      diagram-service:
-        condition: service_healthy
-      ppt-service:
-        condition: service_healthy

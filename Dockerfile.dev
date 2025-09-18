@@ -6,14 +6,24 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install && npm cache clean --force
+RUN npm install
 
 # Copy source code
 COPY . .
 
-# Remove unnecessary files
-RUN rm -rf .git .next/cache node_modules/.cache
+# Set environment
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV WATCHPACK_POLLING=true
 
+# Create .next directory with proper permissions
+RUN mkdir -p .next && chown -R node:node .next
+
+# Switch to node user
+USER node
+
+# Expose port
 EXPOSE 3000
 
+# Start development server
 CMD ["npm", "run", "dev"]
