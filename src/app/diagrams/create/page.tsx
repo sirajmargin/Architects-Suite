@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DiagramAsCodeEditor } from '@/components/editor/DiagramAsCodeEditor';
 import { DiagramRenderer } from '@/components/diagrams/DiagramRenderer';
+import { CloudDiagramWithAI } from '@/components/diagrams/CloudDiagramWithAI';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DiagramType, DiagramContent } from '@/types';
@@ -82,7 +83,7 @@ function DiagramCreateContent() {
                 Create {diagramType.charAt(0).toUpperCase() + diagramType.slice(1)} Diagram
               </h1>
               
-              {aiEnabled && (
+              {diagramType === 'cloud-architecture' && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                   <Brain className="h-3 w-3 mr-1" />
                   AI Enhanced
@@ -91,32 +92,34 @@ function DiagramCreateContent() {
             </div>
             
             <div className="flex items-center space-x-3">
-              <div className="flex rounded-lg border border-gray-300 p-1">
-                <Button
-                  variant={viewMode === 'code' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('code')}
-                >
-                  <Code className="h-4 w-4 mr-1" />
-                  Code
-                </Button>
-                <Button
-                  variant={viewMode === 'split' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('split')}
-                >
-                  <Split className="h-4 w-4 mr-1" />
-                  Split
-                </Button>
-                <Button
-                  variant={viewMode === 'preview' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('preview')}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  Preview
-                </Button>
-              </div>
+              {diagramType !== 'cloud-architecture' && (
+                <div className="flex rounded-lg border border-gray-300 p-1">
+                  <Button
+                    variant={viewMode === 'code' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('code')}
+                  >
+                    <Code className="h-4 w-4 mr-1" />
+                    Code
+                  </Button>
+                  <Button
+                    variant={viewMode === 'split' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('split')}
+                  >
+                    <Split className="h-4 w-4 mr-1" />
+                    Split
+                  </Button>
+                  <Button
+                    variant={viewMode === 'preview' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('preview')}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Preview
+                  </Button>
+                </div>
+              )}
 
               <Button disabled={isSaving}>
                 <Save className="h-4 w-4 mr-2" />
@@ -128,34 +131,40 @@ function DiagramCreateContent() {
       </header>
 
       <div className="flex h-[calc(100vh-4rem)]">
-        <div className="flex-1 flex">
-          {(viewMode === 'code' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} border-r border-gray-200`}>
-              <DiagramAsCodeEditor
-                diagramType={diagramType}
-                initialContent={content.code || ''}
-                onSave={handleSave}
-                onPreview={handlePreview}
-              />
-            </div>
-          )}
-
-          {(viewMode === 'preview' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} bg-white`}>
-              <div className="h-full p-4">
-                <DiagramRenderer
-                  type={diagramType}
-                  content={content}
-                  width={viewMode === 'split' ? 600 : 800}
-                  height={600}
-                  readonly={false}
-                  onContentChange={handleContentChange}
-                  onError={(error) => console.error('Diagram error:', error)}
+        {diagramType === 'cloud-architecture' ? (
+          <div className="flex-1 p-4">
+            <CloudDiagramWithAI onContentChange={handleContentChange} />
+          </div>
+        ) : (
+          <div className="flex-1 flex">
+            {(viewMode === 'code' || viewMode === 'split') && (
+              <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} border-r border-gray-200`}>
+                <DiagramAsCodeEditor
+                  diagramType={diagramType}
+                  initialContent={content.code || ''}
+                  onSave={handleSave}
+                  onPreview={handlePreview}
                 />
               </div>
-            </div>
-          )}
-        </div>
+            )}
+
+            {(viewMode === 'preview' || viewMode === 'split') && (
+              <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} bg-white`}>
+                <div className="h-full p-4">
+                  <DiagramRenderer
+                    type={diagramType}
+                    content={content}
+                    width={viewMode === 'split' ? 600 : 800}
+                    height={600}
+                    readonly={false}
+                    onContentChange={handleContentChange}
+                    onError={(error) => console.error('Diagram error:', error)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

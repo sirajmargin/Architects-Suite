@@ -2,10 +2,17 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
-RUN npm install
 
+# Install dependencies
+RUN npm install && npm cache clean --force
+
+# Copy source code
 COPY . .
+
+# Remove unnecessary files
+RUN rm -rf .git .next/cache node_modules/.cache
 
 EXPOSE 3000
 

@@ -1,25 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    // In a real app, get user ID from session/auth
-    const userId = 'temp-user-id'; // Replace with actual user ID from auth
-    
-    // Get user's diagrams
-    const diagrams = await prisma.diagram.findMany({
-      where: {
-        createdBy: userId,
+    // Mock diagrams data for testing
+    const mockDiagrams = [
+      {
+        id: '1',
+        title: 'User Authentication Flow',
+        type: 'flowchart',
+        description: 'Login and registration process',
+        lastModified: new Date('2024-01-15'),
+        isStarred: true,
+        isShared: false,
+        collaborators: 2
       },
-      orderBy: {
-        updatedAt: 'desc',
+      {
+        id: '2', 
+        title: 'Database Schema',
+        type: 'erd',
+        description: 'Main application database structure',
+        lastModified: new Date('2024-01-10'),
+        isStarred: false,
+        isShared: true,
+        collaborators: 5
       },
-      take: 20, // Limit to 20 most recent
-    });
+      {
+        id: '3',
+        title: 'API Sequence',
+        type: 'sequence',
+        description: 'REST API interaction flow',
+        lastModified: new Date('2024-01-08'),
+        isStarred: false,
+        isShared: false,
+        collaborators: 1
+      }
+    ];
 
     return NextResponse.json({
       success: true,
-      data: diagrams,
+      data: mockDiagrams,
     });
   } catch (error) {
     console.error('Error fetching diagrams:', error);

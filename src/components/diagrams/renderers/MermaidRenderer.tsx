@@ -81,7 +81,11 @@ export function MermaidRenderer({
 
   useEffect(() => {
     if (mermaid && content.code && containerRef.current) {
-      renderMermaidDiagram();
+      // Check if code is valid before rendering
+      const trimmedCode = content.code.trim();
+      if (trimmedCode && !trimmedCode.startsWith('//') && !trimmedCode.startsWith('/*')) {
+        renderMermaidDiagram();
+      }
     }
   }, [mermaid, content.code]);
 
@@ -201,7 +205,7 @@ export function MermaidRenderer({
     );
   }
 
-  if (!content.code) {
+  if (!content.code || content.code.trim().startsWith('//') || content.code.trim().startsWith('/*')) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-gray-500">

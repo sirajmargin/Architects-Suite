@@ -1,11 +1,18 @@
-import { PrismaClient } from '@prisma/client';
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+// Prisma disabled for testing
+export const prisma = {
+  diagram: {
+    count: () => Promise.resolve(0),
+    findMany: () => Promise.resolve([]),
+    create: () => Promise.resolve({}),
+    update: () => Promise.resolve({}),
+    delete: () => Promise.resolve({})
+  },
+  user: {
+    findUnique: () => Promise.resolve(null),
+    create: () => Promise.resolve({}),
+    update: () => Promise.resolve({})
+  },
+  collaborationSession: {
+    groupBy: () => Promise.resolve([])
+  }
 };
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: ['query'],
-});
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
