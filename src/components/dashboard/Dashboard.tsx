@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Plus, 
   Search, 
@@ -48,6 +49,9 @@ interface DashboardStats {
 
 export function Dashboard() {
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [showAiPrompt, setShowAiPrompt] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalDiagrams: 0,
     sharedDiagrams: 0,
@@ -74,7 +78,7 @@ export function Dashboard() {
       const diagramsData = await diagramsResponse.json();
       
       if (diagramsData.success) {
-        setDiagrams(diagramsData.data);
+        setDiagrams(diagramsData.diagrams || []);
       }
       
       // Load dashboard stats
@@ -82,7 +86,12 @@ export function Dashboard() {
       const statsData = await statsResponse.json();
       
       if (statsData.success) {
-        setStats(statsData.data);
+        setStats(statsData.stats || {
+          totalDiagrams: 0,
+          sharedDiagrams: 0,
+          collaborators: 0,
+          aiGeneratedDiagrams: 0
+        });
       }
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
@@ -110,34 +119,44 @@ export function Dashboard() {
   };
 
   const handleAIGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      setShowAiPrompt(true);
+      return;
+    }
+
+    setIsLoading(true);
     try {
       const response = await fetch('/api/diagrams/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: 'Generate a sample diagram',
-          diagramType: 'flowchart',
-          complexity: 'medium'
+          prompt: aiPrompt,
+          diagramType: 'cloud-architecture'
         })
       });
       
       const result = await response.json();
       
       if (result.success) {
-        // Navigate to diagram creation with AI-generated content
+        sessionStorage.setItem('aiGeneratedContent', JSON.stringify(result.content));
         const params = new URLSearchParams({
-          type: 'flowchart',
+          type: 'cloud-architecture',
           ai: 'true',
-          generated: 'true'
+          prompt: aiPrompt
         });
         window.location.href = `/diagrams/create?${params.toString()}`;
+      } else {
+        alert('Failed to generate diagram: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('AI generation failed:', error);
+      alert('Failed to generate diagram. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const filteredDiagrams = diagrams.filter(diagram => {
+  const filteredDiagrams = (diagrams || []).filter(diagram => {
     const matchesSearch = diagram.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          diagram.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterType === 'all' || diagram.type === filterType;
@@ -192,7 +211,10 @@ export function Dashboard() {
                         <p className="font-medium text-blue-900">{suggestion.title}</p>
                         <p className="text-sm text-blue-700">{suggestion.description}</p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => handleAIGenerate()}>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setAiPrompt(suggestion.title);
+                        setShowAiPrompt(true);
+                      }}>
                         Try Now
                       </Button>
                     </div>
@@ -246,6 +268,61 @@ export function Dashboard() {
           </Card>
         </div>
 
+        {/* AI Prompt Section */}
+        {showAiPrompt && (
+          <Card className="mb-8 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                AI Diagram Generator
+              </CardTitle>
+              <CardDescription>
+                Describe the diagram you want to create and AI will generate it for you
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Describe your diagram:</label>
+                <Textarea
+                  className="min-h-[80px] resize-none"
+                  placeholder="e.g., 'Create a microservices architecture with user service, order service, and databases' or 'Design a serverless application with API Gateway and Lambda'"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault();
+                      handleAIGenerate();
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-2">
+                  <Button onClick={handleAIGenerate} disabled={!aiPrompt.trim() || isLoading}>
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="h-4 w-4 mr-2" />
+                        Generate Diagram
+                      </>
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAiPrompt(false)}>
+                    Cancel
+                  </Button>
+                </div>
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  Ctrl+Enter to generate
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Create Section */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Create New Diagram</h2>
@@ -288,10 +365,10 @@ export function Dashboard() {
             
             <Button 
               variant="outline" 
-              className="h-24 flex flex-col items-center justify-center"
-              onClick={handleAIGenerate}
+              className="h-24 flex flex-col items-center justify-center border-blue-200 hover:bg-blue-50"
+              onClick={() => setShowAiPrompt(true)}
             >
-              <Brain className="h-6 w-6 mb-2" />
+              <Brain className="h-6 w-6 mb-2 text-blue-600" />
               AI Generate
             </Button>
             

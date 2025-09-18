@@ -13,9 +13,10 @@ import {
   Brain
 } from 'lucide-react';
 
-// Lazy load heavy components
-const DiagramAsCodeEditor = lazy(() => import('@/components/editor/DiagramAsCodeEditor').then(m => ({ default: m.DiagramAsCodeEditor })));
-const DiagramRenderer = lazy(() => import('@/components/diagrams/DiagramRenderer').then(m => ({ default: m.DiagramRenderer })));
+// Fast components for immediate loading
+import { FastDiagramRenderer } from '@/components/diagrams/FastDiagramRenderer';
+
+// Lazy load only when needed
 const CloudDiagramWithAI = lazy(() => import('@/components/diagrams/CloudDiagramWithAI').then(m => ({ default: m.CloudDiagramWithAI })));
 
 function DiagramCreateContent() {
@@ -139,26 +140,25 @@ function DiagramCreateContent() {
             <div className="flex-1 flex">
               {(viewMode === 'code' || viewMode === 'split') && (
                 <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} border-r border-gray-200`}>
-                  <DiagramAsCodeEditor
-                    diagramType={diagramType}
-                    initialContent={content.code || ''}
-                    onSave={handleSave}
-                    onPreview={handlePreview}
-                  />
+                  <div className="h-full p-4">
+                    <textarea
+                      className="w-full h-full border rounded p-4 font-mono text-sm resize-none"
+                      value={content.code}
+                      onChange={(e) => setContent(prev => ({ ...prev, code: e.target.value }))}
+                      placeholder={`Enter ${diagramType} code here...`}
+                    />
+                  </div>
                 </div>
               )}
 
               {(viewMode === 'preview' || viewMode === 'split') && (
                 <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} bg-white`}>
                   <div className="h-full p-4">
-                    <DiagramRenderer
+                    <FastDiagramRenderer
                       type={diagramType}
                       content={content}
                       width={viewMode === 'split' ? 600 : 800}
                       height={600}
-                      readonly={false}
-                      onContentChange={handleContentChange}
-                      onError={(error) => console.error('Diagram error:', error)}
                     />
                   </div>
                 </div>

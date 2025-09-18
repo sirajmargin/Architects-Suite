@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DiagramContent } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, Code, Eye, Loader2, Sparkles } from 'lucide-react';
-
-const CloudArchitectureRenderer = lazy(() => import('./renderers/CloudArchitectureRenderer').then(m => ({ default: m.CloudArchitectureRenderer })));
+import { FastDiagramRenderer } from './FastDiagramRenderer';
+import { DrawIORenderer } from './DrawIORenderer';
+import { PPTViewer } from './PPTViewer';
+import { PPTGenerator } from '@/lib/ppt-generator';
+import { Brain, Code, Eye, Loader2, Sparkles, FileText, Presentation } from 'lucide-react';
 
 interface CloudDiagramWithAIProps {
   onContentChange?: (content: DiagramContent) => void;
@@ -23,7 +25,36 @@ export function CloudDiagramWithAI({ onContentChange }: CloudDiagramWithAIProps)
     edges: [],
     layout: { direction: 'TB', spacing: 100, alignment: 'center' }
   });
-  const [viewMode, setViewMode] = useState<'diagram' | 'code' | 'split'>('split');
+  const [viewMode, setViewMode] = useState<'diagram' | 'drawio' | 'ppt' | 'code'>('diagram');
+  const [pptData, setPptData] = useState<any>(null);
+
+  useEffect(() => {
+    // Check for AI generated content from session storage
+    const aiContent = sessionStorage.getItem('aiGeneratedContent');
+    if (aiContent) {
+      try {
+        const parsedContent = JSON.parse(aiContent);
+        setDiagramContent(parsedContent);
+        setGeneratedCode(parsedContent.code || '');
+        
+        // Generate PPT from loaded content
+        if (parsedContent.visual?.services) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const userPrompt = urlParams.get('prompt') || 'Architecture diagram';
+          const ppt = PPTGenerator.generateArchitecturePPT(
+            parsedContent.visual.services,
+            userPrompt
+          );
+          setPptData(ppt);
+          setViewMode('ppt');
+        }
+        
+        sessionStorage.removeItem('aiGeneratedContent');
+      } catch (error) {
+        console.error('Failed to parse AI content:', error);
+      }
+    }
+  }, []);
 
   const generateCloudDiagram = async () => {
     if (!prompt.trim()) return;
@@ -59,6 +90,18 @@ export function CloudDiagramWithAI({ onContentChange }: CloudDiagramWithAIProps)
         if (onContentChange) {
           onContentChange(combinedContent);
         }
+        
+        // Generate PPT data
+        if (aiContent.visual?.services) {
+          const ppt = PPTGenerator.generateArchitecturePPT(
+            aiContent.visual.services,
+            prompt
+          );
+          setPptData(ppt);
+        }
+        
+        // Set default view to presentation
+        setViewMode('ppt');
       } else {
         throw new Error(result.error);
       }
@@ -400,12 +443,20 @@ resource "aws_instance" "web" {
             Diagram
           </Button>
           <Button
-            variant={viewMode === 'split' ? 'default' : 'outline'}
+            variant={viewMode === 'drawio' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('split')}
+            onClick={() => setViewMode('drawio')}
           >
             <Brain className="h-4 w-4 mr-1" />
-            Split View
+            Draw.io
+          </Button>
+          <Button
+            variant={viewMode === 'ppt' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('ppt')}
+          >
+            <Presentation className="h-4 w-4 mr-1" />
+            Presentation
           </Button>
           <Button
             variant={viewMode === 'code' ? 'default' : 'outline'}
@@ -419,43 +470,72 @@ resource "aws_instance" "web" {
       )}
 
       {/* Content Display */}
-      <div className="flex-1 flex gap-4">
-        {/* Diagram View */}
-        {(viewMode === 'diagram' || viewMode === 'split') && diagramContent.visual && (
-          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'}`}>
-            <Card className="h-full">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Generated Architecture</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[calc(100%-4rem)]">
-                <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"><span className="sr-only">Loading diagram...</span></div></div>}>
-                  <CloudArchitectureRenderer
-                    content={diagramContent}
-                    width={viewMode === 'split' ? 500 : 800}
-                    height={400}
-                    readonly={false}
-                    onContentChange={setDiagramContent}
-                  />
-                </Suspense>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="flex-1">
+        {viewMode === 'diagram' && diagramContent.visual && (
+          <Card className="h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Architecture Diagram</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-4rem)]">
+              <FastDiagramRenderer
+                type="cloud-architecture"
+                content={diagramContent}
+                width={800}
+                height={500}
+              />
+            </CardContent>
+          </Card>
         )}
 
-        {/* Code View */}
-        {(viewMode === 'code' || viewMode === 'split') && generatedCode && (
-          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'}`}>
-            <Card className="h-full">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Generated Infrastructure Code</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[calc(100%-4rem)]">
-                <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto h-full text-sm font-mono">
-                  <code>{generatedCode}</code>
-                </pre>
-              </CardContent>
-            </Card>
-          </div>
+        {viewMode === 'drawio' && diagramContent.visual?.services && (
+          <Card className="h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Draw.io Format</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-4rem)]">
+              <DrawIORenderer
+                services={diagramContent.visual.services}
+                width={800}
+                height={500}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {viewMode === 'ppt' && pptData && (
+          <Card className="h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Architecture Presentation</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-4rem)] p-0">
+              <PPTViewer
+                pptData={pptData}
+                onTemplateUpload={(template) => {
+                  if (diagramContent.visual?.services) {
+                    const newPpt = PPTGenerator.generateArchitecturePPT(
+                      diagramContent.visual.services,
+                      prompt,
+                      template
+                    );
+                    setPptData(newPpt);
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {viewMode === 'code' && generatedCode && (
+          <Card className="h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Infrastructure Code</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-4rem)]">
+              <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto h-full text-sm font-mono">
+                <code>{generatedCode}</code>
+              </pre>
+            </CardContent>
+          </Card>
         )}
       </div>
 

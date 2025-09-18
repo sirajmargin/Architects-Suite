@@ -1,66 +1,32 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'mermaid'],
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  serverExternalPackages: ['@node-saml/node-saml'],
-  webpack: (config, { isServer }) => {
-    // Handle Canvas for html2canvas
-    if (isServer) {
-      config.externals.push('canvas');
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+          mermaid: {
+            test: /[\\/]node_modules[\\/]mermaid[\\/]/,
+            name: 'mermaid',
+            chunks: 'async',
+          },
+        },
+      };
     }
-    
-    // Handle mermaid
-    config.module.rules.push({
-      test: /\.mjs$/,
-      include: /node_modules/,
-      type: 'javascript/auto'
-    });
-
     return config;
   },
-
-  compress: true,
-  
-  // Security headers
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
-          }
-        ]
-      }
-    ];
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
-
-  // Environment variables
-  env: {
-    // Add environment variables here if needed
-  },
-
-  // Image optimization
-  images: {
-    domains: ['localhost'],
-    formats: ['image/webp', 'image/avif'],
-  },
-
-  // Output configuration for standalone build
-  output: 'standalone',
 };
 
 module.exports = nextConfig;
