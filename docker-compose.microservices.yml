@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # AI Service
+  ai-service:
+    build:
+      context: ./services/ai-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Diagram Service
+  diagram-service:
+    build:
+      context: ./services/diagram-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PPT Service
+  ppt-service:
+    build:
+      context: ./services/ppt-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_AI_SERVICE_URL=http://localhost:3001
+      - NEXT_PUBLIC_DIAGRAM_SERVICE_URL=http://localhost:3002
+      - NEXT_PUBLIC_PPT_SERVICE_URL=http://localhost:3003
+    depends_on:
+      ai-service:
+        condition: service_healthy
+      diagram-service:
+        condition: service_healthy
+      ppt-service:
+        condition: service_healthy

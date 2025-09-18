@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  ai-service:
+    build: ./services/ai-service
+    ports:
+      - "3001:3001"
+
+  diagram-service:
+    build: ./services/diagram-service
+    ports:
+      - "3002:3002"
+
+  ppt-service:
+    build: ./services/ppt-service
+    ports:
+      - "3003:3003"

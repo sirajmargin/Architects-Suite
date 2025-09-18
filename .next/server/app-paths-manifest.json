@@ -1,8 +1,1 @@
-{
-  "/api/diagrams/route": "app/api/diagrams/route.js",
-  "/api/ai/dashboard-suggestions/route": "app/api/ai/dashboard-suggestions/route.js",
-  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
-  "/api/diagrams/ai-generate/route": "app/api/diagrams/ai-generate/route.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/diagrams/create/page": "app/diagrams/create/page.js"
-}
+{}

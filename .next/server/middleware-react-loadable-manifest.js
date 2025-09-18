@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{\"app/diagrams/create/page.tsx -> @/components/diagrams/CloudDiagramWithAI\":{\"id\":\"app/diagrams/create/page.tsx -> @/components/diagrams/CloudDiagramWithAI\",\"files\":[\"static/chunks/vendors.js\",\"static/chunks/_app-pages-browser_src_components_ui_card_tsx-_app-pages-browser_src_components_ui_textarea_tsx.js\",\"static/chunks/_app-pages-browser_src_components_diagrams_CloudDiagramWithAI_tsx.js\"]}}"
+self.__REACT_LOADABLE_MANIFEST="{}"

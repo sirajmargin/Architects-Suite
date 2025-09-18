@@ -62,14 +62,11 @@ export function CloudDiagramWithAI({ onContentChange }: CloudDiagramWithAIProps)
     setIsGenerating(true);
     
     try {
-      const response = await fetch('/api/diagrams/ai-generate', {
+      const aiServiceUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:3001';
+      const response = await fetch(`${aiServiceUrl}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          diagramType: 'cloud-architecture',
-          complexity: 'medium'
-        })
+        body: JSON.stringify({ prompt })
       });
       
       const result = await response.json();
@@ -91,13 +88,19 @@ export function CloudDiagramWithAI({ onContentChange }: CloudDiagramWithAIProps)
           onContentChange(combinedContent);
         }
         
-        // Generate PPT data
-        if (aiContent.visual?.services) {
-          const ppt = PPTGenerator.generateArchitecturePPT(
-            aiContent.visual.services,
-            prompt
-          );
-          setPptData(ppt);
+        // Generate PPT data via service
+        if (result.content.visual?.services) {
+          const pptServiceUrl = process.env.NEXT_PUBLIC_PPT_SERVICE_URL || 'http://localhost:3003';
+          fetch(`${pptServiceUrl}/generate-ppt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ services: result.content.visual.services, prompt })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) setPptData(data.ppt);
+          })
+          .catch(console.error);
         }
         
         // Set default view to presentation
