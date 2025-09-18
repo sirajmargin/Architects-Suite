@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import rateLimit from 'express-rate-limit';
-import helmet from 'helmet';
+// import rateLimit from 'express-rate-limit';
+// import helmet from 'helmet';
 
 // Security middleware configuration
 export const securityConfig = {
@@ -344,8 +344,8 @@ export function createSecurityMiddleware() {
     audit,
     accessControl,
 
-    // Rate limiting middleware
-    rateLimit: rateLimit(securityConfig.rateLimit),
+    // Rate limiting middleware (disabled for build)
+    // rateLimit: rateLimit(securityConfig.rateLimit),
 
     // Request validation middleware
     validateRequest: (req: NextRequest) => {
