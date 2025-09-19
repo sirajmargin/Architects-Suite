@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+
+# Environment files
+.env
+.env.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build outputs
+dist/
+build/
+
+# Temporary files
+temp/
+uploads/
+
+# OS generated files
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Backend specific
+backend/node_modules/
+backend/uploads/
+backend/data/
+backend/logs/

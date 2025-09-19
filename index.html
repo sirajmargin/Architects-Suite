@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Architects Suite - AI-Powered Architecture Design Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo">
+                <i class="fas fa-project-diagram"></i>
+                <span>IT Architects Suite</span>
+                <span class="logo-beta">AI-Powered</span>
+            </div>
+            
+            <nav class="nav-menu">
+                <ul>
+                    <li><a href="#" class="nav-link active" onclick="showDashboard()">Dashboard</a></li>
+                    <li><a href="#" class="nav-link" onclick="showAIDiagrams()">AI Diagrams</a></li>
+                    <li><a href="#" class="nav-link" onclick="showArchitecturePatterns()">Architecture Patterns</a></li>
+                    <li><a href="#" class="nav-link">Documentation</a></li>
+                    <li><a href="#" class="nav-link">Collaboration</a></li>
+                </ul>
+            </nav>
+            
+            <div class="header-actions">
+                <button class="btn-secondary">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <div class="user-avatar">
+                    <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3>AI-Powered Actions</h3>
+                <button class="btn-primary sidebar-btn ai-btn">
+                    <i class="fas fa-robot"></i>
+                    Generate Architecture
+                </button>
+                <button class="btn-secondary sidebar-btn">
+                    <i class="fas fa-file-powerpoint"></i>
+                    Create PPT
+                </button>
+                <button class="btn-secondary sidebar-btn">
+                    <i class="fas fa-brain"></i>
+                    AI Analysis
+                </button>
+            </div>
+            
+            <!-- Architecture Overview Card -->
+            <div class="sidebar-section">
+                <h3>Architecture Overview</h3>
+                <div class="sidebar-card">
+                    <div class="stat-mini">
+                        <span class="stat-number-mini">12</span>
+                        <span class="stat-label-mini">Active Architectures</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-number-mini">48</span>
+                        <span class="stat-label-mini">AI-Generated Diagrams</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-number-mini">95%</span>
+                        <span class="stat-label-mini">Compliance Score</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Team Activity Card -->
+            <div class="sidebar-section">
+                <h3>Team Activity</h3>
+                <div class="sidebar-card">
+                    <div class="activity-item-mini">
+                        <div class="activity-avatar-mini"></div>
+                        <div class="activity-text-mini">
+                            <strong>John Doe</strong> updated design
+                            <span class="activity-time-mini">2h ago</span>
+                        </div>
+                    </div>
+                    <div class="activity-item-mini">
+                        <div class="activity-avatar-mini"></div>
+                        <div class="activity-text-mini">
+                            <strong>Jane Smith</strong> created template
+                            <span class="activity-time-mini">4h ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Architecture Patterns Card -->
+            <div class="sidebar-section">
+                <h3>Architecture Patterns</h3>
+                <div class="sidebar-card">
+                    <div class="template-grid-mini">
+                        <div class="template-item-mini" data-pattern="microservices">
+                            <i class="fas fa-cubes"></i>
+                            <span>Microservices</span>
+                        </div>
+                        <div class="template-item-mini" data-pattern="serverless">
+                            <i class="fas fa-cloud"></i>
+                            <span>Serverless</span>
+                        </div>
+                        <div class="template-item-mini" data-pattern="event-driven">
+                            <i class="fas fa-bolt"></i>
+                            <span>Event-Driven</span>
+                        </div>
+                        <div class="template-item-mini" data-pattern="data-lake">
+                            <i class="fas fa-database"></i>
+                            <span>Data Lake</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sourced Diagrams Card -->
+            <div class="sidebar-section">
+                <h3>Sourced Diagrams</h3>
+                <div class="sidebar-card">
+                    <div class="diagram-list" id="sourced-diagrams-list">
+                        <div class="diagram-item" data-diagram-id="1">
+                            <i class="fas fa-project-diagram"></i>
+                            <span>E-Commerce Microservices</span>
+                            <small>Dec 18, 2024</small>
+                        </div>
+                        <div class="diagram-item" data-diagram-id="2">
+                            <i class="fas fa-cloud"></i>
+                            <span>Multi-Cloud Strategy</span>
+                            <small>Dec 17, 2024</small>
+                        </div>
+                        <div class="diagram-item" data-diagram-id="3">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Zero Trust Security</span>
+                            <small>Dec 16, 2024</small>
+                        </div>
+                        <div class="diagram-item" data-diagram-id="4">
+                            <i class="fas fa-database"></i>
+                            <span>Data Pipeline Architecture</span>
+                            <small>Dec 15, 2024</small>
+                        </div>
+                        <div class="diagram-item" data-diagram-id="5">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Hybrid Cloud Network</span>
+                            <small>Dec 14, 2024</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Recent Architectures</h3>
+                <div class="project-list">
+                    <div class="project-item">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>E-Commerce Microservices</span>
+                        <span class="project-badge ai">AI</span>
+                    </div>
+                    <div class="project-item">
+                        <i class="fas fa-cloud"></i>
+                        <span>Multi-Cloud Strategy</span>
+                        <span class="project-badge compliant">✓</span>
+                    </div>
+                    <div class="project-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Zero Trust Security</span>
+                        <span class="project-badge ai">AI</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <div class="content-header" id="main-content-header">
+                <div class="ai-status">
+                    <span class="ai-indicator">🤖 AI Assistant Ready</span>
+                    <span class="well-architected-badge">✓ Well-Architected Framework</span>
+                </div>
+            </div>
+            
+            <div class="main-workspace">
+                <div class="card large" id="ai-workspace-card">
+                    <div class="card-header">
+                        <h3>AI Architecture Workspace</h3>
+                        <div class="card-actions">
+                            <button class="btn-secondary">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
+                            <button class="btn-secondary">
+                                <i class="fas fa-share-alt"></i>
+                                Share
+                            </button>
+                            <button class="btn-primary">
+                                <i class="fas fa-magic"></i>
+                                AI Enhance
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="workspace-area">
+                            <div class="ai-workspace-placeholder">
+                                <div class="ai-prompt-section">
+                                    <h4>🤖 Describe Your Architecture</h4>
+                                    <textarea class="ai-prompt" placeholder="Example: Create a microservices architecture for an e-commerce platform with event-driven communication, API gateway, and cloud-native deployment..." rows="4"></textarea>
+                                    <div class="ai-controls">
+                                        <div class="diagram-type-section" style="margin-bottom: 15px;">
+                                            <label style="font-weight: 500; color: #333; margin-right: 10px;">Diagram Type:</label>
+                                            <select id="diagram-type" class="diagram-type-select" style="
+                                                padding: 8px 12px;
+                                                border: 1px solid #ddd;
+                                                border-radius: 6px;
+                                                background: white;
+                                                font-size: 14px;
+                                                min-width: 180px;
+                                            ">
+                                                <option value="auto-detect">🔍 Auto-detect</option>
+                                                <option value="cloud-architecture">☁️ Cloud Architecture</option>
+                                                <option value="uml">📊 UML Diagram</option>
+                                                <option value="flowchart">🔄 Flowchart</option>
+                                                <option value="er-diagram">🗄️ ER Diagram</option>
+                                                <option value="bpmn">⚙️ BPMN</option>
+                                            </select>
+                                        </div>
+                                        <div class="ai-options">
+                                            <label>
+                                                <input type="checkbox" checked> Well-Architected Framework
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" checked> Security Best Practices
+                                            </label>
+                                            <label>
+                                                <input type="checkbox"> Cost Optimization
+                                            </label>
+                                        </div>
+                                        <button class="btn-primary ai-generate-btn">
+                                            <i class="fas fa-magic"></i>
+                                            Generate Architecture
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="ai-suggestions">
+                                    <h5>💡 Quick Start Suggestions:</h5>
+                                    <div class="suggestion-pills">
+                                        <span class="suggestion-pill">Cloud Migration Strategy</span>
+                                        <span class="suggestion-pill">Microservices API Gateway</span>
+                                        <span class="suggestion-pill">Data Analytics Pipeline</span>
+                                        <span class="suggestion-pill">CI/CD DevOps Platform</span>
+                                    </div>
+                                </div>
+                                <div class="ppt-template-upload">
+                                    <h5>📄 Upload PowerPoint Template (Optional):</h5>
+                                    <input type="file" id="ppt-template" accept=".pptx" class="file-input">
+                                    <label for="ppt-template" class="btn-secondary file-label">
+                                        <i class="fas fa-upload"></i>
+                                        Choose Template File
+                                    </label>
+                                    <span class="file-name"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="script.js"></script>
+    <script src="script-enhancements.js"></script>
+</body>
+</html>
+

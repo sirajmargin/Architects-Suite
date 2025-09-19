@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Frontend Application (Static files served by Nginx)
+  frontend:
+    image: nginx:alpine
+    container_name: architects-suite-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - .:/usr/share/nginx/html:ro
+      - ./docker/nginx-simple.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - architects-network
+    restart: unless-stopped
+
+  # Backend API Service
+  backend:
+    image: node:22-alpine
+    container_name: architects-suite-backend
+    working_dir: /app
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm start"
+    networks:
+      - architects-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  architects-network:
+    driver: bridge

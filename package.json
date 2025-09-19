@@ -1,0 +1,54 @@
+{
+  "name": "it-architects-suite",
+  "version": "1.0.0",
+  "description": "AI-Powered Enterprise Architecture Design Platform for IT Architects",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server . -p 3000 -o",
+    "dev": "npx live-server --port=3000 --host=localhost --open=/index.html",
+    "build": "echo 'Building IT Architects Suite for production'",
+    "serve": "npx serve . -p 3000",
+    "docker:build": "docker build -t it-architects-suite:latest .",
+    "docker:run": "docker run -d --name architects-suite -p 3000:3000 it-architects-suite:latest",
+    "docker:compose": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "test": "echo 'Running tests for IT Architects Suite'",
+    "lint": "eslint . --ext .js,.html",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "architecture",
+    "enterprise-architecture",
+    "it-architecture",
+    "ai-powered",
+    "diagram-generation",
+    "well-architected",
+    "cloud-architecture",
+    "microservices",
+    "system-design",
+    "documentation"
+  ],
+  "author": "IT Architects Suite Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/it-architects-suite.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/it-architects-suite/issues"
+  },
+  "homepage": "https://github.com/your-org/it-architects-suite#readme",
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2",
+    "prettier": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.12.2"
+  }
+}
